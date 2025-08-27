@@ -1,0 +1,113 @@
+### ===============================================
+### API Test Collection for Golang DDD Project
+### ===============================================
+
+# Variabel global untuk host API.
+# Ganti port jika Anda mengubahnya di file config.yaml
+@host = http://localhost:8080/api
+
+# Variabel untuk menyimpan token otentikasi (JWT)
+# @authToken =
+
+### ===============================================
+### 1. Authentication API Tests
+### ===============================================
+
+### 1.1 Register New User (Sukses)
+# @name registerUserSuccess
+# Mendaftarkan user baru. Response-nya akan berisi data user yang baru dibuat.
+POST {{host}}/register
+Content-Type: application/json
+Accept: application/json
+
+{
+    "name": "Dimas Afifudin",
+    "email": "dimas.afifudin@example.com",
+    "password": "password123"
+}
+
+### 1.2 Register New User (Gagal - Validasi Error)
+# Mencoba mendaftar dengan data yang tidak valid (nama pendek, email salah, password lemah).
+POST {{host}}/register
+Content-Type: application/json
+Accept: application/json
+
+{
+    "name": "Di",
+    "email": "bukan-email",
+    "password": "123"
+}
+
+### 1.3 Register New User (Gagal - Email Sudah Terdaftar)
+# Mencoba mendaftar dengan email yang sama dari request 1.1.
+POST {{host}}/register
+Content-Type: application/json
+Accept: application/json
+
+{
+    "name": "User Lain",
+    "email": "dimas.afifudin@example.com",
+    "password": "passwordlain"
+}
+
+---
+
+### 1.4 Login User (Sukses)
+# @name loginUserSuccess
+# Login menggunakan user yang berhasil didaftarkan di 1.1.
+# Token JWT dari response akan otomatis disimpan ke variabel @authToken.
+POST {{host}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "dimas.afifudin@example.com",
+    "password": "password123"
+}
+
+# @authToken = {{loginUserSuccess.response.body.data.token}}
+
+### 1.5 Login User (Gagal - Password Salah)
+POST {{host}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "dimas.afifudin@example.com",
+    "password": "passwordsalah"
+}
+
+### 1.6 Login User (Gagal - User Tidak Ditemukan)
+POST {{host}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "tidakada@example.com",
+    "password": "password123"
+}
+
+### ===============================================
+### 2. User Profile API Tests (Protected)
+### ===============================================
+
+### 2.1 Get Current User Profile (Sukses)
+# Mengambil data user yang sedang login menggunakan token dari request 1.4.
+# Pastikan Anda sudah menjalankan request 1.4 (Login Sukses) terlebih dahulu.
+GET {{host}}/users/current
+Accept: application/json
+Authorization: Bearer {{loginUserSuccess.response.body.data.token}}
+
+
+### 2.2 Get Current User Profile (Gagal - Tanpa Token)
+# Mencoba mengakses endpoint tanpa menyertakan token otentikasi.
+GET {{host}}/users/current
+Accept: application/json
+
+
+### 2.3 Get Current User Profile (Gagal - Token Salah/Invalid)
+# Mencoba mengakses endpoint dengan token yang salah.
+GET {{host}}/users/current
+Accept: application/json
+Authorization: Bearer tokenyangsalah12345
+

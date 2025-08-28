@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/dimasafifudin11/golang-ddd-pattern-restful-api/internal/domain/common"
 	"github.com/dimasafifudin11/golang-ddd-pattern-restful-api/internal/domain/model"
 	"github.com/dimasafifudin11/golang-ddd-pattern-restful-api/internal/domain/repository"
 	"github.com/dimasafifudin11/golang-ddd-pattern-restful-api/internal/domain/service"
@@ -27,15 +28,14 @@ func NewAuthService(userRepo repository.UserRepository, log *logrus.Logger) serv
 func (s *authServiceImpl) Register(ctx context.Context, name, email, password string) (*model.User, error) {
 	log := s.log.WithFields(logrus.Fields{"method": "Register", "email": email})
 
-	// Check if user already exists
 	existingUser, err := s.userRepository.FindByEmail(ctx, email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.WithError(err).Error("Failed to check existing user")
 		return nil, errors.New("server error")
 	}
-	if existingUser != nil {
-		log.Warn("User already exists")
-		return nil, errors.New("email already registered")
+	if existingUser != nil && existingUser.ID != 0 {
+		log.Warn("User with this email already exists")
+		return nil, common.ErrConflict
 	}
 
 	hashedPassword, err := util.HashPassword(password)
@@ -65,16 +65,16 @@ func (s *authServiceImpl) Login(ctx context.Context, email, password string) (st
 	user, err := s.userRepository.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Warn("User not found")
-			return "", errors.New("invalid email or password")
+			log.Warn("User not found on login attempt")
+			return "", common.ErrUnauthorized
 		}
 		log.WithError(err).Error("Failed to find user by email")
 		return "", errors.New("server error")
 	}
 
 	if !util.CheckPasswordHash(password, user.Password) {
-		log.Warn("Invalid password")
-		return "", errors.New("invalid email or password")
+		log.Warn("Invalid password provided")
+		return "", common.ErrUnauthorized
 	}
 
 	token, err := util.GenerateToken(user.ID)

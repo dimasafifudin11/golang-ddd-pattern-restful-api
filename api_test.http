@@ -1,113 +1,275 @@
+# ### ===============================================
+# ### API Test Collection for Golang DDD Project
+# ### ===============================================
+
+# # Variabel global untuk host API.
+# # Ganti port jika Anda mengubahnya di file config.yaml
+# @host = http://localhost:8080/api
+
+# # Variabel untuk menyimpan token otentikasi (JWT)
+# @authToken =
+
+# ### ===============================================
+# ### 1. Authentication API Tests
+# ### ===============================================
+
+# ### 1.1 Register New User (Sukses)
+# # @name registerUserSuccess
+# # Mendaftarkan user baru. Response-nya akan berisi data user yang baru dibuat.
+# POST {{host}}/register
+# Content-Type: application/json
+# Accept: application/json
+
+# {
+#     "name": "Dimas Afifudin",
+#     "email": "dimas.afifudin@example.com",
+#     "password": "password123"
+# }
+
+# ### 1.2 Register New User (Gagal - Validasi Error)
+# # Mencoba mendaftar dengan data yang tidak valid (nama pendek, email salah, password lemah).
+# POST {{host}}/register
+# Content-Type: application/json
+# Accept: application/json
+
+# {
+#     "name": "Di",
+#     "email": "bukan-email",
+#     "password": "123"
+# }
+
+# ### 1.3 Register New User (Gagal - Email Sudah Terdaftar)
+# # Mencoba mendaftar dengan email yang sama dari request 1.1.
+# POST {{host}}/register
+# Content-Type: application/json
+# Accept: application/json
+
+# {
+#     "name": "User Lain",
+#     "email": "dimas.afifudin@example.com",
+#     "password": "passwordlain"
+# }
+
+# ---
+
+# ### 1.4 Login User (Sukses)
+# # @name loginUserSuccess
+# # Login menggunakan user yang berhasil didaftarkan di 1.1.
+# # Token JWT dari response akan otomatis disimpan ke variabel @authToken.
+# POST {{host}}/login
+# Content-Type: application/json
+# Accept: application/json
+
+# {
+#     "email": "dimas.afifudin@example.com",
+#     "password": "password123"
+# }
+
+# ### 1.5 Login User (Gagal - Password Salah)
+# POST {{host}}/login
+# Content-Type: application/json
+# Accept: application/json
+
+# {
+#     "email": "dimas.afifudin@example.com",
+#     "password": "passwordsalah"
+# }
+
+# ### 1.6 Login User (Gagal - User Tidak Ditemukan)
+# POST {{host}}/login
+# Content-Type: application/json
+# Accept: application/json
+
+# {
+#     "email": "tidakada@example.com",
+#     "password": "password123"
+# }
+
+# ### ===============================================
+# ### 2. User Profile API Tests (Protected)
+# ### ===============================================
+
+# ### 2.1 Get Current User Profile (Sukses)
+# # Mengambil data user yang sedang login menggunakan token dari request 1.4.
+# # Pastikan Anda sudah menjalankan request 1.4 (Login Sukses) terlebih dahulu.
+# GET {{host}}/users/current
+# Accept: application/json
+# Authorization: Bearer {{loginUserSuccess.response.body.data.token}}
+
+
+# ### 2.2 Get Current User Profile (Gagal - Tanpa Token)
+# # Mencoba mengakses endpoint tanpa menyertakan token otentikasi.
+# GET {{host}}/users/current
+# Accept: application/json
+
+
+# ### 2.3 Get Current User Profile (Gagal - Token Salah/Invalid)
+# # Mencoba mengakses endpoint dengan token yang salah.
+# GET {{host}}/users/current
+# Accept: application/json
+# Authorization: Bearer tokenyangsalah12345
+
+# =========================================================================
+# FILE: api_tests.http
+# =========================================================================
+
 ### ===============================================
 ### API Test Collection for Golang DDD Project
 ### ===============================================
 
-# Variabel global untuk host API.
-# Ganti port jika Anda mengubahnya di file config.yaml
+# Variabel global
 @host = http://localhost:8080/api
-
-# Variabel untuk menyimpan token otentikasi (JWT)
 @authToken =
+@userId =
+@contactId =
+@addressId =
 
 ### ===============================================
-### 1. Authentication API Tests
+### 1. Authentication
 ### ===============================================
 
 ### 1.1 Register New User (Sukses)
-# @name registerUserSuccess
-# Mendaftarkan user baru. Response-nya akan berisi data user yang baru dibuat.
+# @name registerUser
 POST {{host}}/register
 Content-Type: application/json
-Accept: application/json
 
 {
     "name": "Dimas Afifudin",
-    "email": "dimas.afifudin@example.com",
+    "email": "dimas.test@example.com",
     "password": "password123"
 }
 
-### 1.2 Register New User (Gagal - Validasi Error)
-# Mencoba mendaftar dengan data yang tidak valid (nama pendek, email salah, password lemah).
-POST {{host}}/register
-Content-Type: application/json
-Accept: application/json
-
-{
-    "name": "Di",
-    "email": "bukan-email",
-    "password": "123"
-}
-
-### 1.3 Register New User (Gagal - Email Sudah Terdaftar)
-# Mencoba mendaftar dengan email yang sama dari request 1.1.
-POST {{host}}/register
-Content-Type: application/json
-Accept: application/json
-
-{
-    "name": "User Lain",
-    "email": "dimas.afifudin@example.com",
-    "password": "passwordlain"
-}
-
----
-
-### 1.4 Login User (Sukses)
-# @name loginUserSuccess
-# Login menggunakan user yang berhasil didaftarkan di 1.1.
-# Token JWT dari response akan otomatis disimpan ke variabel @authToken.
+### 1.2 Login (Sukses)
+# @name loginUser
 POST {{host}}/login
 Content-Type: application/json
-Accept: application/json
 
 {
-    "email": "dimas.afifudin@example.com",
+    "email": "dimas.test@example.com",
     "password": "password123"
 }
 
-@authToken = {{loginUserSuccess.response.body.data.token}}
+# @authToken = {{loginUser.response.body.data.token}}
+# @userId = {{registerUser.response.body.data.id}}
 
-### 1.5 Login User (Gagal - Password Salah)
-POST {{host}}/login
+### ===============================================
+### 2. User API (Protected)
+### ===============================================
+
+### 2.1 Get All Users
+GET {{host}}/users
+Authorization: Bearer {{loginUser.response.body.data.token}}
+
+### 2.2 Get User By ID (Sukses)
+GET {{host}}/users/{{registerUser.response.body.data.id}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
+
+### 2.3 Get Current User
+GET {{host}}/users/current
+Authorization: Bearer {{loginUser.response.body.data.token}}
+
+### 2.4 Update User (Sukses)
+PUT {{host}}/users/{{registerUser.response.body.data.id}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
 Content-Type: application/json
-Accept: application/json
 
 {
-    "email": "dimas.afifudin@example.com",
-    "password": "passwordsalah"
-}
-
-### 1.6 Login User (Gagal - User Tidak Ditemukan)
-POST {{host}}/login
-Content-Type: application/json
-Accept: application/json
-
-{
-    "email": "tidakada@example.com",
-    "password": "password123"
+    "name": "Dimas Afifudin Updated",
+    "email": "dimas.updated@example.com"
 }
 
 ### ===============================================
-### 2. User Profile API Tests (Protected)
+### 3. Contact API (Protected)
 ### ===============================================
 
-### 2.1 Get Current User Profile (Sukses)
-# Mengambil data user yang sedang login menggunakan token dari request 1.4.
-# Pastikan Anda sudah menjalankan request 1.4 (Login Sukses) terlebih dahulu.
-GET {{host}}/users/current
-Accept: application/json
-Authorization: Bearer {{authToken}}
+### 3.1 Create Contact for User (Sukses)
+# @name createContact
+POST {{host}}/users/{{registerUser.response.body.data.id}}/contacts
+Authorization: Bearer {{loginUser.response.body.data.token}}
+Content-Type: application/json
 
+{
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "081234567890"
+}
 
-### 2.2 Get Current User Profile (Gagal - Tanpa Token)
-# Mencoba mengakses endpoint tanpa menyertakan token otentikasi.
-GET {{host}}/users/current
-Accept: application/json
+@contactId = {{createContact.response.body.data.id}}
 
+### 3.2 Get All Contacts for User
+GET {{host}}/users/{{registerUser.response.body.data.id}}/contacts
+Authorization: Bearer {{loginUser.response.body.data.token}}
 
-### 2.3 Get Current User Profile (Gagal - Token Salah/Invalid)
-# Mencoba mengakses endpoint dengan token yang salah.
-GET {{host}}/users/current
-Accept: application/json
-Authorization: Bearer tokenyangsalah12345
+### 3.3 Get Contact by ID
+GET {{host}}/contacts/{{contactId}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
 
+### 3.4 Update Contact
+PUT {{host}}/contacts/{{contactId}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
+Content-Type: application/json
+
+{
+    "first_name": "John",
+    "last_name": "Doe Updated",
+    "email": "john.doe.updated@example.com",
+    "phone": "089876543210"
+}
+
+### ===============================================
+### 4. Address API (Protected)
+### ===============================================
+
+### 4.1 Create Address for Contact (Sukses)
+# @name createAddress
+POST {{host}}/contacts/{{contactId}}/addresses
+Authorization: Bearer {{loginUser.response.body.data.token}}
+Content-Type: application/json
+
+{
+    "street": "Jl. Jenderal Sudirman No. 1",
+    "city": "Jakarta",
+    "province": "DKI Jakarta",
+    "country": "Indonesia",
+    "postal_code": "12190"
+}
+
+@addressId = {{createAddress.response.body.data.id}}
+
+### 4.2 Get All Addresses for Contact
+GET {{host}}/contacts/{{contactId}}/addresses
+Authorization: Bearer {{loginUser.response.body.data.token}}
+
+### 4.3 Get Address by ID
+GET {{host}}/addresses/{{addressId}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
+
+### 4.4 Update Address
+PUT {{host}}/addresses/{{addressId}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
+Content-Type: application/json
+
+{
+    "street": "Jl. Gatot Subroto No. 42",
+    "city": "Jakarta Selatan",
+    "province": "DKI Jakarta",
+    "country": "Indonesia",
+    "postal_code": "12710"
+}
+
+### ===============================================
+### 5. Deletion Flow (Jalankan terakhir)
+### ===============================================
+
+### 5.1 Delete Address
+DELETE {{host}}/addresses/{{addressId}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
+
+### 5.2 Delete Contact
+DELETE {{host}}/contacts/{{contactId}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
+
+### 5.3 Delete User
+DELETE {{host}}/users/{{userId}}
+Authorization: Bearer {{loginUser.response.body.data.token}}
